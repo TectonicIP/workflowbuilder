@@ -1,0 +1,58 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(8, 10, 14, 0.55);
+}
+
+.card {
+  width: 100%;
+  max-width: 32rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--wb-ds-ui-bg-base);
+  border: 0.0625rem solid var(--wb-ds-ui-stroke-default);
+  border-radius: var(--wb-sdk-app-bar-border-radius);
+  color: var(--wb-ds-ui-text-default);
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.hint,
+.error {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.error {
+  color: var(--wb-ds-ui-text-critical-default);
+}
+
+.json {
+  width: 100%;
+  min-height: 12rem;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 0.5rem;
+  border: 0.0625rem solid var(--wb-sdk-app-bar-border-color);
+  border-radius: 0.25rem;
+  background: var(--wb-sdk-app-bar-background);
+  color: inherit;
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

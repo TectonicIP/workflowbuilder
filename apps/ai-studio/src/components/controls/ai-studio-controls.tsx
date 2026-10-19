@@ -1,15 +1,18 @@
-import { Icon, getStoreDataForIntegration } from '@workflowbuilder/sdk';
+import { Icon, getStoreDataForIntegration, getStoreSelection } from '@workflowbuilder/sdk';
 import { Button, NavButton } from '@workflowbuilder/ui';
 import clsx from 'clsx';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import styles from './ai-studio-controls.module.css';
 
+import { patchDraft } from '../../adapters/save-workflow-draft';
 import { useBackendExecution } from '../../hooks/use-backend-execution';
 import { useHasStartNode } from '../../hooks/use-has-start-node';
 import { useRunLocksCanvas } from '../../hooks/use-run-locks-canvas';
-import { isRunAlive, useExecutionStore } from '../../stores/use-execution-store';
+import { isRunAlive, resetExecution, useExecutionStore } from '../../stores/use-execution-store';
 import { addNotice } from '../../stores/use-notices-store';
+import { whenRunSettles } from '../../stores/when-run-settles';
+import { runnableWorkflows } from '../../utils/active-workflows';
 import { leaveRunView } from '../../utils/open-from-url/address-execution-id';
 
 type Props = {
@@ -28,30 +31,77 @@ export function AiStudioControls({ workflowId, isRunView }: Props) {
   const isStopRequested = useExecutionStore((state) => state.isStopRequested);
   // A start waits for the backend; a second one meanwhile would leave two runs streaming into one view.
   const [isStarting, setIsStarting] = useState(false);
+  const [isQueueRunning, setIsQueueRunning] = useState(false);
+  const queueAbortRef = useRef<AbortController | null>(null);
   useRunLocksCanvas();
   const canRun = hasStartNode && !isRunView;
 
+  useEffect(() => () => queueAbortRef.current?.abort(), []);
+
   const handleExecute = useCallback(async () => {
+    queueAbortRef.current?.abort();
+    const abort = new AbortController();
+    queueAbortRef.current = abort;
+
     // The shape the editor's autosave sends, so its compare recognises Run's write.
     const { nodes, edges } = getStoreDataForIntegration();
+    const selectedNodeIds = getStoreSelection().nodes.map((node) => node.id);
+    const workflows = runnableWorkflows(nodes, edges, selectedNodeIds);
+    if (workflows.length === 0) {
+      addNotice('No active workflow to run.', 'error');
+      return;
+    }
 
-    const startNode = nodes.find((n) => n.data.isStartNode);
-    const inputPrompt = (startNode?.data.properties as { inputPrompt?: string })?.inputPrompt ?? '';
-    const triggerPayload = inputPrompt ? { input: inputPrompt } : {};
-
+    setIsQueueRunning(true);
     setIsStarting(true);
     try {
-      await executeFromCanvas(nodes, edges, triggerPayload, workflowId);
+      // The linked draft stays the whole canvas. Each graph below is its own workflow, so one start
+      // does not replace the others.
+      if (workflowId) {
+        const response = await patchDraft(workflowId, nodes, edges);
+        if (!response.ok) {
+          const error = (await response.json()) as { message?: string };
+          throw new Error(error.message ?? 'Failed to save workflow');
+        }
+      }
+      if (abort.signal.aborted) return;
+
+      for (const workflow of workflows) {
+        if (abort.signal.aborted) break;
+
+        await executeFromCanvas(workflow.nodes, workflow.edges, workflow.triggerPayload);
+        if (abort.signal.aborted) {
+          if (queueAbortRef.current === abort) resetExecution();
+          break;
+        }
+
+        setIsStarting(false);
+        const outcome = await whenRunSettles(abort.signal);
+        if (outcome === 'stopped') break;
+      }
     } catch (error) {
       console.error('Execution failed:', error);
       addNotice(`The run did not start: ${error instanceof Error ? error.message : String(error)}.`, 'error');
     } finally {
-      setIsStarting(false);
+      if (queueAbortRef.current === abort) {
+        setIsStarting(false);
+        setIsQueueRunning(false);
+      }
     }
   }, [executeFromCanvas, workflowId]);
 
-  const isRunning = isRunAlive(status);
-  const isDone = status !== 'idle' && !isRunning;
+  const handleStop = () => {
+    queueAbortRef.current?.abort();
+    void cancel();
+  };
+
+  const handleReset = () => {
+    queueAbortRef.current?.abort();
+    reset();
+  };
+
+  const isRunning = isRunAlive(status) || isQueueRunning;
+  const isDone = status !== 'idle' && !isRunAlive(status) && !isQueueRunning;
   // Any Stop may never resolve, so asking is enough to offer Reset; `cancelling` covers one asked before a reload.
   const hasAskedToStop = isStopRequested || status === 'cancelling';
   const isDoneOrStuck = isDone || hasAskedToStop;
@@ -71,7 +121,7 @@ export function AiStudioControls({ workflowId, isRunView }: Props) {
             className={styles['run-stop-button']}
             variant="ghost-critical"
             size="s"
-            onClick={cancel}
+            onClick={handleStop}
             disabled={isStarting}
             prefixIcon={<Icon name="Stop" />}
           >
@@ -92,7 +142,7 @@ export function AiStudioControls({ workflowId, isRunView }: Props) {
           <NavButton
             size="s"
             aria-label={resetTooltip}
-            onClick={reset}
+            onClick={handleReset}
             tooltip={resetTooltip}
             prefixIcon={<Icon name="ArrowCounterClockwise" />}
           />

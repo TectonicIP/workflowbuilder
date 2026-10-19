@@ -2,6 +2,7 @@ import type { TemplateModel } from '@workflowbuilder/sdk';
 
 import { aiDebateFlow } from './ai-debate-flow';
 import { contentRepurposerFlow } from './content-repurposer-flow';
+import { frameTheProblemFlow } from './frame-the-problem-flow';
 import { meetingNotesFlow } from './meeting-notes-flow';
 import { refundReviewFlow } from './refund-review-flow';
 import { researchFlow } from './research-flow';
@@ -14,4 +15,5 @@ export const aiStudioTemplates: TemplateModel[] = [
   meetingNotesFlow,
   researchFlow,
   refundReviewFlow,
+  frameTheProblemFlow,
 ];

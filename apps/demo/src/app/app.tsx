@@ -19,7 +19,6 @@ import { plugin as copyPastePlugin } from './plugins/copy-paste/plugin-exports';
 import { plugin as downloadPdfPlugin } from './plugins/download-pdf/plugin-exports';
 import { plugin as elkLayoutPlugin } from './plugins/elk-layout/plugin-exports';
 import { plugin as flowRunnerPlugin } from './plugins/flow-runner/plugin-exports';
-import { plugin as helpPlugin } from './plugins/help/plugin-exports';
 import { plugin as reshapableEdgesPlugin } from './plugins/reshapable-edges/plugin-exports';
 import { plugin as undoRedoPlugin } from './plugins/undo-redo/plugin-exports';
 import { plugin as validationPlugin } from './plugins/validation/plugin-exports';
@@ -65,7 +64,6 @@ export function App() {
         undoRedoPlugin,
         widgetsPlugin,
         flowRunnerPlugin,
-        helpPlugin,
       ]}
     />
   );

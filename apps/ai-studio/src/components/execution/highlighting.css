@@ -1,10 +1,10 @@
 html[data-theme='light'] {
-  --ai-studio-edge-color--active: var(--wb-ds-colors-green-400);
+  --ai-studio-edge-color--active: var(--wb-ds-colors-orange-500);
   --ai-studio-status-color--completed: var(--wb-ds-colors-green-400);
 }
 
 html[data-theme='dark'] {
-  --ai-studio-edge-color--active: var(--wb-ds-colors-green-200);
+  --ai-studio-edge-color--active: var(--wb-ds-colors-orange-400);
   --ai-studio-status-color--completed: var(--wb-ds-colors-green-200);
 }
 

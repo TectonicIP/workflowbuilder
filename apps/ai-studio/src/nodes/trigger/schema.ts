@@ -8,6 +8,9 @@ export const schema = {
     inputPrompt: {
       type: 'string',
     },
+    active: {
+      type: 'boolean',
+    },
   },
 } satisfies NodeSchema;
 

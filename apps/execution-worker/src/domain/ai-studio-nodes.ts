@@ -41,6 +41,46 @@ type VisualizeNodeConfig = Record<string, never>;
 // What to ask a person travels on BaseNode.decisionRequest, lifted off config by the backend.
 type HumanDecisionNodeConfig = Record<string, never>;
 
+type SituationNodeConfig = {
+  friendlyDisposition?: string;
+  adversarySituation?: string;
+  terrain?: string;
+  timeWindow?: string;
+};
+
+type MissionStatementNodeConfig = {
+  task?: string;
+  purpose?: string;
+  endState?: string;
+};
+
+type ConstraintRegisterNodeConfig = {
+  constraints?: string;
+};
+
+type AssumptionRegisterNodeConfig = {
+  assumptions?: string;
+};
+
+type CenterOfGravityNodeConfig = {
+  friendlyCapability?: string;
+  friendlyRequirement?: string;
+  friendlyVulnerability?: string;
+  adversaryCapability?: string;
+  adversaryRequirement?: string;
+  adversaryVulnerability?: string;
+};
+
+type DataInputNodeConfig = {
+  text?: string;
+  format?: string;
+};
+
+type DataParseNodeConfig = {
+  source?: string;
+  format?: string;
+};
+
 export type TriggerNode = ProductNode<'ai-studio/trigger', TriggerNodeConfig>;
 
 export type AiAgentNode = ProductNode<'ai-studio/ai-agent', AiAgentNodeConfig>;
@@ -51,4 +91,30 @@ type VisualizeNode = ProductNode<'ai-studio/visualize', VisualizeNodeConfig>;
 
 export type HumanDecisionNode = ProductNode<'ai-studio/human-decision', HumanDecisionNodeConfig>;
 
-export type AiStudioNode = TriggerNode | AiAgentNode | DecisionNode | VisualizeNode | HumanDecisionNode;
+export type SituationNode = ProductNode<'ai-studio/situation', SituationNodeConfig>;
+
+export type MissionStatementNode = ProductNode<'ai-studio/mission-statement', MissionStatementNodeConfig>;
+
+export type ConstraintRegisterNode = ProductNode<'ai-studio/constraint-register', ConstraintRegisterNodeConfig>;
+
+export type AssumptionRegisterNode = ProductNode<'ai-studio/assumption-register', AssumptionRegisterNodeConfig>;
+
+export type CenterOfGravityNode = ProductNode<'ai-studio/center-of-gravity', CenterOfGravityNodeConfig>;
+
+export type DataInputNode = ProductNode<'ai-studio/data-input', DataInputNodeConfig>;
+
+export type DataParseNode = ProductNode<'ai-studio/data-parse', DataParseNodeConfig>;
+
+export type AiStudioNode =
+  | TriggerNode
+  | AiAgentNode
+  | DecisionNode
+  | VisualizeNode
+  | HumanDecisionNode
+  | SituationNode
+  | MissionStatementNode
+  | ConstraintRegisterNode
+  | AssumptionRegisterNode
+  | CenterOfGravityNode
+  | DataInputNode
+  | DataParseNode;

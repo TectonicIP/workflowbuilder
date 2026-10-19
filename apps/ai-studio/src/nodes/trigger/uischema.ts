@@ -22,5 +22,10 @@ export const uischema: UISchema = {
       minRows: 5,
       maxRows: 14,
     },
+    {
+      type: 'Switch',
+      scope: scope('properties.active'),
+      label: 'Active (include this workflow when running)',
+    },
   ],
 };

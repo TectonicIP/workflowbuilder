@@ -10,8 +10,15 @@ import { database } from '../../database';
 import type { AiStudioNode } from '../../domain/ai-studio-nodes';
 import { env } from '../../env';
 import { createAiAgentExecutor } from '../../executors/ai-agent';
+import { executeAssumptionRegister } from '../../executors/assumption-register';
+import { executeCenterOfGravity } from '../../executors/center-of-gravity';
+import { executeConstraintRegister } from '../../executors/constraint-register';
+import { executeDataInput } from '../../executors/data-input';
+import { executeDataParse } from '../../executors/data-parse';
 import { executeDecision } from '../../executors/decision';
 import { executeHumanDecision } from '../../executors/human-decision';
+import { executeMissionStatement } from '../../executors/mission-statement';
+import { executeSituation } from '../../executors/situation';
 import { executeTrigger } from '../../executors/trigger';
 import { executeVisualize } from '../../executors/visualize';
 import { logger } from '../../logger';
@@ -43,6 +50,13 @@ const plugin = new WorkflowBuilderPlugin<AiStudioNode>({
     'ai-studio/ai-agent': executeAIAgent,
     'ai-studio/visualize': executeVisualize,
     'ai-studio/human-decision': executeHumanDecision,
+    'ai-studio/situation': executeSituation,
+    'ai-studio/mission-statement': executeMissionStatement,
+    'ai-studio/constraint-register': executeConstraintRegister,
+    'ai-studio/assumption-register': executeAssumptionRegister,
+    'ai-studio/center-of-gravity': executeCenterOfGravity,
+    'ai-studio/data-input': executeDataInput,
+    'ai-studio/data-parse': executeDataParse,
   },
   store: withPayloadSizeWarning(database, logger),
 });

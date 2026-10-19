@@ -1,4 +1,4 @@
-import { useStore } from '@workflowbuilder/sdk';
+import { type WorkflowBuilderNode, useStore } from '@workflowbuilder/sdk';
 import { type ComponentProps, act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,6 +42,16 @@ declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean;
 }
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+function placeStart(id = 'start', active?: boolean) {
+  const properties = { label: id, inputPrompt: 'hello', ...(active === undefined ? {} : { active }) };
+  const node: WorkflowBuilderNode = {
+    id,
+    position: { x: 0, y: 0 },
+    data: { isStartNode: true, type: 'ai-studio/trigger', icon: 'Lightning', properties },
+  };
+  useStore.setState({ nodes: [node], edges: [], selectedNodesIds: [] });
+}
 
 function setRunStatus(status: ExecutionStatus) {
   act(() => applySnapshot(snapshotFrame(status, [])));
@@ -99,6 +109,8 @@ describe('AiStudioControls', () => {
     render();
   };
 
+  const executeCalls = () => fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/execute'));
+
   // The words on Run and Stop are their names; an aria-label would replace what a person reads.
   it('names Run and Stop by the words on them', () => {
     expect(buttonOf('Play')?.textContent).toBe('Run');
@@ -123,6 +135,7 @@ describe('AiStudioControls', () => {
   it('offers Stop as soon as Run is pressed, so a second start cannot follow before the backend answers', async () => {
     const request = vi.fn(() => new Promise<Response>(() => {}));
     vi.stubGlobal('fetch', request);
+    placeStart();
     setRunStatus('completed');
     expect(icons()).toEqual(['Play', 'ArrowCounterClockwise']);
 
@@ -137,6 +150,7 @@ describe('AiStudioControls', () => {
   it('offers Run again after a start the backend refused', async () => {
     fetchMock.mockImplementation(async () => jsonResponse(503, { message: 'Unavailable' }));
     const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    placeStart();
 
     await clickIcon('Play');
 
@@ -147,6 +161,7 @@ describe('AiStudioControls', () => {
   it('tells the user why a start failed', async () => {
     fetchMock.mockImplementation(async () => jsonResponse(503, { message: 'Unavailable' }));
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    placeStart();
 
     await clickIcon('Play');
 
@@ -157,6 +172,7 @@ describe('AiStudioControls', () => {
 
   it("Run on the link's workflow saves into that workflow first", async () => {
     const workflow = '0b6e7d9c-4b1a-4c2e-9a3f-2f7a1d8e5c11';
+    placeStart();
     render({ workflowId: workflow });
 
     await clickIcon('Play');
@@ -174,11 +190,61 @@ describe('AiStudioControls', () => {
 
     await clickIcon('Play');
 
-    const [draft, execute] = fetchMock.mock.calls;
+    const draft = fetchMock.mock.calls[0];
+    const execute = executeCalls()[0];
     expect(JSON.parse(String(draft?.[1]?.body)).draftJson.nodes).toEqual([{ ...start, selected: false }]);
     expect(JSON.parse(String(execute?.[1]?.body)).triggerPayload).toEqual({
       input: (start.data.properties as { inputPrompt: string }).inputPrompt,
     });
+  });
+
+  it('does not start a workflow whose Start is switched off', async () => {
+    placeStart('start', false);
+
+    await clickIcon('Play');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(useNoticesStore.getState().notices.map((notice) => notice.text)).toEqual(['No active workflow to run.']);
+  });
+
+  it('starts the next active workflow only after the one before it ends', async () => {
+    let executions = 0;
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/execute')) {
+        executions += 1;
+        return jsonResponse(200, {
+          executionId: `exec-${executions}`,
+          streamUrl: `/api/executions/exec-${executions}/stream`,
+        });
+      }
+      return jsonResponse(200, { id: `wf-${executions + 1}` });
+    });
+    placeStart('first', true);
+    const second: WorkflowBuilderNode = {
+      id: 'second',
+      position: { x: 400, y: 0 },
+      data: {
+        isStartNode: true,
+        type: 'ai-studio/trigger',
+        icon: 'Lightning',
+        properties: { label: 'second', active: true },
+      },
+    };
+    useStore.setState({ nodes: [...useStore.getState().nodes, second] });
+
+    await clickIcon('Play');
+    expect(executeCalls()).toHaveLength(1);
+
+    act(() => latestStream().emit(snapshotFrame('completed')));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(executeCalls()).toHaveLength(2);
+    expect(executeCalls().map((call) => JSON.parse(String(call[1]?.body)).triggerPayload)).toEqual([
+      { input: 'hello' },
+      {},
+    ]);
   });
 
   // The canvas holds the run's graph, which is saved nowhere; running it again is a feature of its own.
